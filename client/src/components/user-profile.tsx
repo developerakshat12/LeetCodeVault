@@ -16,7 +16,7 @@ export default function UserProfile({ onUserUpdate }: UserProfileProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading } = useQuery<any>({
     queryKey: ["/api/users/leetcode", username],
     enabled: !!username,
     retry: false,

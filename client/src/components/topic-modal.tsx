@@ -18,12 +18,12 @@ interface TopicModalProps {
 }
 
 export default function TopicModal({ topicId, isOpen, onClose }: TopicModalProps) {
-  const { data: topic } = useQuery({
+  const { data: topic } = useQuery<any>({
     queryKey: ["/api/topics", topicId],
     enabled: !!topicId,
   });
 
-  const { data: problems = [] } = useQuery({
+  const { data: problems = [] } = useQuery<any[]>({
     queryKey: ["/api/problems/topic", topicId],
     enabled: !!topicId,
   });

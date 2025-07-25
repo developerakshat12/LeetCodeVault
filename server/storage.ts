@@ -58,7 +58,7 @@ export class MemStorage implements IStorage {
         description: topic.description,
         color: topic.color,
         icon: topic.icon,
-        isCustom: false,
+        isCustom: 0,
         userId: null,
       });
     });
@@ -77,7 +77,16 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      leetcodeUsername: insertUser.leetcodeUsername || null,
+      totalSolved: insertUser.totalSolved || null,
+      easySolved: insertUser.easySolved || null,
+      mediumSolved: insertUser.mediumSolved || null,
+      hardSolved: insertUser.hardSolved || null,
+      lastFetchedAt: insertUser.lastFetchedAt || null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -104,7 +113,15 @@ export class MemStorage implements IStorage {
 
   async createTopic(insertTopic: InsertTopic): Promise<Topic> {
     const id = randomUUID();
-    const topic: Topic = { ...insertTopic, id };
+    const topic: Topic = { 
+      ...insertTopic, 
+      id,
+      color: insertTopic.color || "blue",
+      description: insertTopic.description || null,
+      icon: insertTopic.icon || null,
+      isCustom: insertTopic.isCustom || 0,
+      userId: insertTopic.userId || null
+    };
     this.topics.set(id, topic);
     return topic;
   }
@@ -143,7 +160,19 @@ export class MemStorage implements IStorage {
 
   async createProblem(insertProblem: InsertProblem): Promise<Problem> {
     const id = randomUUID();
-    const problem: Problem = { ...insertProblem, id };
+    const problem: Problem = { 
+      ...insertProblem, 
+      id,
+      description: insertProblem.description || null,
+      submissionDate: insertProblem.submissionDate || null,
+      language: insertProblem.language || null,
+      code: insertProblem.code || null,
+      runtime: insertProblem.runtime || null,
+      memory: insertProblem.memory || null,
+      tags: insertProblem.tags || null,
+      userId: insertProblem.userId || null,
+      topicId: insertProblem.topicId || null
+    };
     this.problems.set(id, problem);
     return problem;
   }

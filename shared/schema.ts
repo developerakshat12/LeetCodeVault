@@ -20,7 +20,7 @@ export const topics = pgTable("topics", {
   description: text("description"),
   color: text("color").notNull().default("blue"),
   icon: text("icon"),
-  isCustom: integer("is_custom", { mode: "boolean" }).default(false),
+  isCustom: integer("is_custom").default(0),
   userId: varchar("user_id").references(() => users.id),
 });
 
