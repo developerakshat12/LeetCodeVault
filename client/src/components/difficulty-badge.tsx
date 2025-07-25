@@ -27,7 +27,7 @@ export function DifficultyBadge({ difficulty }: DifficultyBadgeProps) {
       case "Medium":
         return "bg-yellow-500 text-black hover:bg-yellow-500";
       case "Hard":
-        return "bg-red-500 text-white hover:bg-red-500";
+        return "bg-red-500 text-black hover:bg-red-500";
       default:
         return "";
     }
