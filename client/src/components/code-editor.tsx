@@ -10,6 +10,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { java } from '@codemirror/lang-java';
 import { cpp } from '@codemirror/lang-cpp';
+import { EditorView } from '@codemirror/view';
 
 // VS Code themes
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
@@ -29,17 +30,19 @@ export function CodeEditor({ code, language, onCodeChange, onLanguageChange, tit
 
   // Get language extensions
   const getLanguageExtensions = (lang: string) => {
+    const baseExtensions = [EditorView.lineWrapping];
+    
     switch (lang) {
       case "javascript":
-        return [javascript()];
+        return [...baseExtensions, javascript()];
       case "python":
-        return [python()];
+        return [...baseExtensions, python()];
       case "java":
-        return [java()];
+        return [...baseExtensions, java()];
       case "cpp":
-        return [cpp()];
+        return [...baseExtensions, cpp()];
       default:
-        return [javascript()];
+        return [...baseExtensions, javascript()];
     }
   };
 
