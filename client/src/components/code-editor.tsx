@@ -98,7 +98,7 @@ export function CodeEditor({ code, language, onCodeChange, onLanguageChange, tit
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 h-full overflow-y-auto bg-[#f5f5f5] dark:bg-[#1e1e1e]">
+      <CardContent className="p-0 h-full overflow-y-auto bg-[#1e1e1e] rounded-lg">
         <CodeMirror
           value={code}
           height="100%"
@@ -120,6 +120,7 @@ export function CodeEditor({ code, language, onCodeChange, onLanguageChange, tit
           style={{
             fontSize: '14px',
             fontFamily: 'JetBrains Mono, Monaco, Cascadia Code, Roboto Mono, monospace',
+            whiteSpace: 'pre-wrap',
           }}
         />
       </CardContent>

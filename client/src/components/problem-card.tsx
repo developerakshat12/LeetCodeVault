@@ -26,7 +26,7 @@ export function ProblemCard({ problem, onOpenEditor }: ProblemCardProps) {
   };
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-md border border-gray-100 dark:border-gray-800">
+    <Card className="transition-all duration-200 hover:shadow-md border border-gray-800">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">

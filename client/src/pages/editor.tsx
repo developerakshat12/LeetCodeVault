@@ -211,16 +211,6 @@ export default function Editor() {
               <Plus className="w-4 h-4 mr-2" />
               Add Solution
             </Button>
-            <Button variant="outline" asChild>
-              <a 
-                href={`https://leetcode.com/problems/${problem.titleSlug}/`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open in LeetCode
-              </a>
-            </Button>
           </div>
         </div>
 

@@ -4,7 +4,9 @@ import { storage } from "./storage";
 import { insertUserSchema, insertTopicSchema, insertProblemSchema } from "@shared/schema";
 import { z } from "zod";
 import { LeetCodeGraphQLAPI } from "./leetcode-api";
-const { LeetCode } = require("leetcode-query");
+import LeetCodeQuery from "leetcode-query";
+
+const LeetCode = LeetCodeQuery;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -313,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/topics/:topicId", async (req, res) => {
     try {
       const { topicId } = req.params;
-      const topic = await storage.getTopicById(topicId);
+      const topic = await storage.getTopic(topicId);
 
       if (!topic) {
         return res.status(404).json({ message: "Topic not found" });
@@ -330,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/problems/:problemId/enhanced", async (req, res) => {
     try {
       const { problemId } = req.params;
-      const problem = await storage.getProblemById(problemId);
+      const problem = await storage.getProblem(problemId);
 
       if (!problem) {
         return res.status(404).json({ message: "Problem not found" });
@@ -347,7 +349,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: problemDetails?.content || problem.description,
           hints: problemDetails?.hints || [],
           similarQuestions: problemDetails?.similarQuestions || [],
-          companies: problemDetails?.companies || [],
           topicTags: problemDetails?.topicTags || problem.tags,
         };
 
