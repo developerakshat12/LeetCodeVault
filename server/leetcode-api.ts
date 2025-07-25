@@ -8,8 +8,6 @@ export interface LeetCodeSubmission {
   statusDisplay: string;
   lang: string;
   code?: string;
-  runtime?: string;
-  memory?: string;
   difficulty?: string;
   topicTags?: string[];
 }
@@ -134,8 +132,6 @@ function solution() {
     // Your ${submission.lang} solution here
     return "Solution for ${submission.title}";
 }`,
-            runtime: `${Math.floor(Math.random() * 100) + 50}ms`,
-            memory: `${Math.floor(Math.random() * 20) + 40}MB`
           };
         })
       );
@@ -198,8 +194,6 @@ function solution() {
             titleSlug
           }
           statusDisplay
-          runtime
-          memory
         }
       }
     `;
