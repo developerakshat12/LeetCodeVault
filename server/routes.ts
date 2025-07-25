@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTopicSchema, insertProblemSchema, insertSolutionSchema } from "@shared/schema";
+import { insertUserSchema, insertTopicSchema, insertProblemSchema } from "@shared/schema";
 import { z } from "zod";
 import { LeetCodeGraphQLAPI } from "./leetcode-api";
 
@@ -183,12 +183,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               difficulty: submission.difficulty || "Medium",
               tags: submission.topicTags || [],
               submissionDate: submission.timestamp ? new Date(parseInt(submission.timestamp) * 1000).toISOString() : new Date().toISOString(),
-              userId: user.id,
-              topicId: topic.id,
-              code: submission.code || `// ${submission.lang} solution for ${submission.title}`,
               language: submission.lang,
+              code: submission.code || `// ${submission.lang} solution for ${submission.title}`,
               runtime: submission.runtime || "N/A",
               memory: submission.memory || "N/A",
+              userId: user.id,
+              topicId: topic.id,
             });
             
             console.log("✅ Problem created successfully:", newProblem.id);
@@ -290,88 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/problems/topic/:topicId", async (req, res) => {
     try {
       const problems = await storage.getProblemsByTopic(req.params.topicId);
-      const problemsWithSolutionCount = await Promise.all(
-        problems.map(async (problem) => {
-          const solutions = await storage.getSolutions(problem.id);
-          return {
-            ...problem,
-            solutionCount: solutions.length,
-          };
-        })
-      );
-      res.json(problemsWithSolutionCount);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/problems/:id", async (req, res) => {
-    try {
-      const problem = await storage.getProblem(req.params.id);
-      if (!problem) {
-        return res.status(404).json({ message: "Problem not found" });
-      }
-      res.json(problem);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/problems", async (req, res) => {
-    try {
-      const problemData = insertProblemSchema.parse(req.body);
-      const problem = await storage.createProblem(problemData);
-      res.status(201).json(problem);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid problem data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Solution routes
-  app.get("/api/problems/:problemId/solutions", async (req, res) => {
-    try {
-      const solutions = await storage.getSolutions(req.params.problemId);
-      res.json(solutions);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/solutions", async (req, res) => {
-    try {
-      const solutionData = insertSolutionSchema.parse(req.body);
-      const solution = await storage.createSolution(solutionData);
-      res.status(201).json(solution);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid solution data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.put("/api/solutions/:id", async (req, res) => {
-    try {
-      const solution = await storage.updateSolution(req.params.id, req.body);
-      if (!solution) {
-        return res.status(404).json({ message: "Solution not found" });
-      }
-      res.json(solution);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.delete("/api/solutions/:id", async (req, res) => {
-    try {
-      const success = await storage.deleteSolution(req.params.id);
-      if (!success) {
-        return res.status(404).json({ message: "Solution not found" });
-      }
-      res.json({ message: "Solution deleted successfully" });
+      res.json(problems);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

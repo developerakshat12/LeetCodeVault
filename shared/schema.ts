@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, jsonb, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -26,37 +26,19 @@ export const topics = pgTable("topics", {
 
 export const problems = pgTable("problems", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  leetcodeId: integer("leetcode_id"),
+  leetcodeId: integer("leetcode_id").notNull(),
   title: text("title").notNull(),
-  titleSlug: text("title_slug"),
+  titleSlug: text("title_slug").notNull(),
   difficulty: text("difficulty").notNull(), // Easy, Medium, Hard
-  description: text("description").default(""),
-  platform: text("platform").default("LeetCode"),
-  tags: text("tags").array().default(sql`'{}'::text[]`),
-  status: text("status").default("todo"), // todo, in-progress, completed, review
+  tags: text("tags").array(),
+  description: text("description"),
   submissionDate: text("submission_date"),
-  userId: varchar("user_id").references(() => users.id),
-  topicId: varchar("topic_id").references(() => topics.id),
-  lastEdited: timestamp("last_edited").default(sql`now()`),
-  createdAt: timestamp("created_at").default(sql`now()`),
-  updatedAt: timestamp("updated_at").default(sql`now()`),
-});
-
-export const solutions = pgTable("solutions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  problemId: varchar("problem_id").references(() => problems.id).notNull(),
-  name: text("name").notNull().default("Solution 1"),
-  approach: text("approach").default(""),
-  timeComplexity: text("time_complexity").default("O()"),
-  spaceComplexity: text("space_complexity").default("O()"),
-  explanation: text("explanation").default(""),
-  code: text("code").notNull(),
-  language: text("language").notNull().default("cpp"),
+  language: text("language"),
+  code: text("code"),
   runtime: text("runtime"),
   memory: text("memory"),
-  notes: text("notes").default(""),
-  createdAt: timestamp("created_at").default(sql`now()`),
-  updatedAt: timestamp("updated_at").default(sql`now()`),
+  userId: varchar("user_id").references(() => users.id),
+  topicId: varchar("topic_id").references(() => topics.id),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -69,15 +51,6 @@ export const insertTopicSchema = createInsertSchema(topics).omit({
 
 export const insertProblemSchema = createInsertSchema(problems).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
-  lastEdited: true,
-});
-
-export const insertSolutionSchema = createInsertSchema(solutions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export type User = typeof users.$inferSelect;
@@ -86,5 +59,3 @@ export type Topic = typeof topics.$inferSelect;
 export type InsertTopic = z.infer<typeof insertTopicSchema>;
 export type Problem = typeof problems.$inferSelect;
 export type InsertProblem = z.infer<typeof insertProblemSchema>;
-export type Solution = typeof solutions.$inferSelect;
-export type InsertSolution = z.infer<typeof insertSolutionSchema>;

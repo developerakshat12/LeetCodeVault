@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Topic, type InsertTopic, type Problem, type InsertProblem, type Solution, type InsertSolution } from "@shared/schema";
+import { type User, type InsertUser, type Topic, type InsertTopic, type Problem, type InsertProblem } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -22,26 +22,17 @@ export interface IStorage {
   updateProblem(id: string, updates: Partial<Problem>): Promise<Problem | undefined>;
   deleteProblem(id: string): Promise<boolean>;
   getProblemsByTopic(topicId: string): Promise<Problem[]>;
-  
-  // Solution operations
-  getSolutions(problemId: string): Promise<Solution[]>;
-  getSolution(id: string): Promise<Solution | undefined>;
-  createSolution(solution: InsertSolution): Promise<Solution>;
-  updateSolution(id: string, updates: Partial<Solution>): Promise<Solution | undefined>;
-  deleteSolution(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private topics: Map<string, Topic>;
   private problems: Map<string, Problem>;
-  private solutions: Map<string, Solution>;
 
   constructor() {
     this.users = new Map();
     this.topics = new Map();
     this.problems = new Map();
-    this.solutions = new Map();
     
     // Initialize default topics
     this.initializeDefaultTopics();
@@ -167,47 +158,22 @@ export class MemStorage implements IStorage {
     return this.problems.get(id);
   }
 
-  async createProblem(insertProblem: InsertProblem & { code?: string; language?: string; runtime?: string; memory?: string }): Promise<Problem> {
+  async createProblem(insertProblem: InsertProblem): Promise<Problem> {
     const id = randomUUID();
-    const now = new Date();
     const problem: Problem = { 
       ...insertProblem, 
       id,
       description: insertProblem.description || null,
-      platform: insertProblem.platform || null,
-      status: insertProblem.status || null,
       submissionDate: insertProblem.submissionDate || null,
+      language: insertProblem.language || null,
+      code: insertProblem.code || null,
+      runtime: insertProblem.runtime || null,
+      memory: insertProblem.memory || null,
       tags: insertProblem.tags || null,
       userId: insertProblem.userId || null,
-      topicId: insertProblem.topicId || null,
-      lastEdited: now,
-      createdAt: now,
-      updatedAt: now,
+      topicId: insertProblem.topicId || null
     };
     this.problems.set(id, problem);
-
-    // Create initial solution if we have code from LeetCode
-    if (insertProblem.code) {
-      const solutionId = randomUUID();
-      const solution: Solution = {
-        id: solutionId,
-        problemId: id,
-        name: "LeetCode Submission",
-        approach: `Submitted solution in ${insertProblem.language || 'Unknown'}`,
-        timeComplexity: "O()",
-        spaceComplexity: "O()",
-        explanation: "",
-        code: insertProblem.code,
-        language: insertProblem.language || "cpp",
-        runtime: insertProblem.runtime || null,
-        memory: insertProblem.memory || null,
-        notes: "",
-        createdAt: now,
-        updatedAt: now,
-      };
-      this.solutions.set(solutionId, solution);
-    }
-
     return problem;
   }
 
@@ -228,50 +194,6 @@ export class MemStorage implements IStorage {
     return Array.from(this.problems.values()).filter(
       problem => problem.topicId === topicId
     );
-  }
-
-  // Solution operations
-  async getSolutions(problemId: string): Promise<Solution[]> {
-    return Array.from(this.solutions.values()).filter(
-      solution => solution.problemId === problemId
-    );
-  }
-
-  async getSolution(id: string): Promise<Solution | undefined> {
-    return this.solutions.get(id);
-  }
-
-  async createSolution(insertSolution: InsertSolution): Promise<Solution> {
-    const id = randomUUID();
-    const now = new Date();
-    const solution: Solution = {
-      ...insertSolution,
-      id,
-      approach: insertSolution.approach || null,
-      timeComplexity: insertSolution.timeComplexity || null,
-      spaceComplexity: insertSolution.spaceComplexity || null,
-      explanation: insertSolution.explanation || null,
-      runtime: insertSolution.runtime || null,
-      memory: insertSolution.memory || null,
-      notes: insertSolution.notes || null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.solutions.set(id, solution);
-    return solution;
-  }
-
-  async updateSolution(id: string, updates: Partial<Solution>): Promise<Solution | undefined> {
-    const solution = this.solutions.get(id);
-    if (!solution) return undefined;
-    
-    const updatedSolution = { ...solution, ...updates, updatedAt: new Date() };
-    this.solutions.set(id, updatedSolution);
-    return updatedSolution;
-  }
-
-  async deleteSolution(id: string): Promise<boolean> {
-    return this.solutions.delete(id);
   }
 }
 
