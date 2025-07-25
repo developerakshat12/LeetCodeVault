@@ -12,7 +12,7 @@ interface UserProfileProps {
 }
 
 export default function UserProfile({ onUserUpdate }: UserProfileProps) {
-  const [username, setUsername] = useState("lee215");
+  const [username, setUsername] = useState("akshatcancode");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

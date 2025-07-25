@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/topics", async (req, res) => {
     try {
       const { userId } = req.query;
-      const topics = await storage.getTopics(userId as string);
+      const topics = await storage.getTopics(userId as string || undefined);
       
       // Get problem counts for each topic
       const topicsWithCounts = await Promise.all(

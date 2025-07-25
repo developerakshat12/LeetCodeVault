@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,10 +71,10 @@ export default function AddTopicModal({ isOpen, onClose, userId }: AddTopicModal
 
     createTopicMutation.mutate({
       name: name.trim(),
-      description: description.trim(),
+      description: description.trim() || null,
       color: selectedColor,
-      isCustom: true,
-      userId,
+      isCustom: 1,
+      userId: userId || null,
     });
   };
 
@@ -84,6 +85,9 @@ export default function AddTopicModal({ isOpen, onClose, userId }: AddTopicModal
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Custom Topic</DialogTitle>
+          <DialogDescription>
+            Create a custom topic to organize your LeetCode problems.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
