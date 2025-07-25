@@ -167,7 +167,7 @@ export class MemStorage implements IStorage {
     return this.problems.get(id);
   }
 
-  async createProblem(insertProblem: InsertProblem): Promise<Problem> {
+  async createProblem(insertProblem: InsertProblem & { code?: string; language?: string; runtime?: string; memory?: string }): Promise<Problem> {
     const id = randomUUID();
     const now = new Date();
     const problem: Problem = { 
@@ -185,6 +185,29 @@ export class MemStorage implements IStorage {
       updatedAt: now,
     };
     this.problems.set(id, problem);
+
+    // Create initial solution if we have code from LeetCode
+    if (insertProblem.code) {
+      const solutionId = randomUUID();
+      const solution: Solution = {
+        id: solutionId,
+        problemId: id,
+        name: "LeetCode Submission",
+        approach: `Submitted solution in ${insertProblem.language || 'Unknown'}`,
+        timeComplexity: "O()",
+        spaceComplexity: "O()",
+        explanation: "",
+        code: insertProblem.code,
+        language: insertProblem.language || "cpp",
+        runtime: insertProblem.runtime || null,
+        memory: insertProblem.memory || null,
+        notes: "",
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.solutions.set(solutionId, solution);
+    }
+
     return problem;
   }
 
