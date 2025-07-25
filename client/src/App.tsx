@@ -7,7 +7,6 @@ import Home from "./pages/home";
 import Questions from "./pages/questions";
 import Editor from "./pages/editor";
 import NotFound from "./pages/not-found";
-import { Toaster } from "@/components/ui/toaster";
 
 function Router() {
   return (
