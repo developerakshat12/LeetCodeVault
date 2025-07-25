@@ -82,25 +82,27 @@ export default function UserProfile({ onUserUpdate }: UserProfileProps) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-muted rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-green-400">
-                  {user.totalSolved || 0}
+                  {Array.isArray(user.totalSolved) ? 
+                    user.totalSolved.find(s => s.difficulty === "All")?.count || 0 : 
+                    user.totalSolved || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Total Solved</div>
               </div>
               <div className="bg-muted rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-green-500">
-                  {user.easySolved || 0}
+                  {typeof user.easySolved === 'number' ? user.easySolved : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Easy</div>
               </div>
               <div className="bg-muted rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-yellow-500">
-                  {user.mediumSolved || 0}
+                  {typeof user.mediumSolved === 'number' ? user.mediumSolved : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Medium</div>
               </div>
               <div className="bg-muted rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-red-500">
-                  {user.hardSolved || 0}
+                  {typeof user.hardSolved === 'number' ? user.hardSolved : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Hard</div>
               </div>
