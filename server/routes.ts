@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertTopicSchema, insertProblemSchema } from "@shared/schema";
 import { z } from "zod";
 import { LeetCodeGraphQLAPI } from "./leetcode-api";
+const { LeetCode } = require("leetcode-query");
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -61,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username } = req.body;
       console.log("📡 Starting LeetCode data fetch for username:", username);
-      
+
       if (!username) {
         console.log("❌ No username provided");
         return res.status(400).json({ message: "Username is required" });
@@ -70,30 +71,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize LeetCode GraphQL API client
       console.log("🔍 Initializing LeetCode GraphQL API client...");
       const leetcodeAPI = new LeetCodeGraphQLAPI();
-      
+
       // Fetch user profile
       console.log("🔍 Fetching user profile...");
       const profileData = await leetcodeAPI.getUserProfile(username);
-      
+
       if (!profileData) {
         console.log("❌ User not found");
         return res.status(404).json({ message: "LeetCode user not found" });
       }
-      
+
       console.log("✅ Profile data fetched:", JSON.stringify(profileData, null, 2));
 
       // Fetch recent accepted submissions with code
       console.log("🔍 Fetching recent accepted submissions...");
       const submissions = await leetcodeAPI.getRecentSubmissions(username, 20);
       console.log("✅ Submissions data fetched. Total submissions:", submissions?.length || 0);
-      
+
       // Log complete submission data with code for debugging
       console.log("📊 Complete submission data with code:", JSON.stringify(submissions, null, 2));
 
       // Find or create user
       console.log("👤 Finding or creating user...");
       let user = await storage.getUserByLeetcodeUsername(username);
-      
+
       const userStats = {
         username: username,
         leetcodeUsername: username,
@@ -103,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hardSolved: profileData.hardSolved,
         lastFetchedAt: new Date().toISOString(),
       };
-      
+
       if (!user) {
         console.log("🆕 Creating new user with stats:", userStats);
         user = await storage.createUser(userStats);
@@ -122,10 +123,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🔄 Processing submissions...");
       const existingProblems = await storage.getProblems(user.id);
       console.log("📋 Existing problems count:", existingProblems.length);
-      
+
       let processedCount = 0;
       let skippedCount = 0;
-      
+
       if (!submissions || submissions.length === 0) {
         console.log("⚠️ No submissions found for user");
         return res.json({ 
@@ -136,15 +137,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           problemsSkipped: 0
         });
       }
-      
+
       for (let i = 0; i < submissions.length; i++) {
         const submission = submissions[i];
-        
+
         // Only process accepted submissions
         if (submission.statusDisplay !== "Accepted") {
           continue;
         }
-        
+
         console.log(`\n🔍 Processing submission ${i + 1}/${submissions.length}:`, {
           title: submission.title,
           titleSlug: submission.titleSlug,
@@ -155,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Check if problem already exists
         const existingProblem = existingProblems.find(p => p.titleSlug === submission.titleSlug);
-        
+
         if (existingProblem) {
           console.log("⏭️  Problem already exists, skipping:", submission.titleSlug);
           skippedCount++;
@@ -171,10 +172,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Determine topic based on problem tags or title
         console.log("🏷️  Categorizing problem:", submission.topicTags);
         const topic = categorizeSubmission(problemData, topics);
-        
+
         if (topic) {
           console.log("✅ Assigned to topic:", topic.name);
-          
+
           try {
             const newProblem = await storage.createProblem({
               leetcodeId: parseInt(submission.id) || Math.floor(Math.random() * 100000),
@@ -190,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId: user.id,
               topicId: topic.id,
             });
-            
+
             console.log("✅ Problem created successfully:", newProblem.id);
             processedCount++;
           } catch (createError) {
@@ -201,12 +202,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           skippedCount++;
         }
       }
-      
+
       console.log(`\n📊 Processing complete:
         - Total submissions: ${submissions.length}
         - New problems created: ${processedCount}
         - Skipped (duplicates/no topic): ${skippedCount}`);
-      
+
       res.json({ 
         user, 
         message: "LeetCode data fetched successfully",
@@ -226,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.query;
       const topics = await storage.getTopics(userId as string || undefined);
-      
+
       // Get problem counts for each topic
       const topicsWithCounts = await Promise.all(
         topics.map(async (topic) => {
@@ -234,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const easy = problems.filter(p => p.difficulty === "Easy").length;
           const medium = problems.filter(p => p.difficulty === "Medium").length;
           const hard = problems.filter(p => p.difficulty === "Hard").length;
-          
+
           return {
             ...topic,
             totalProblems: problems.length,
@@ -244,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
+
       res.json(topicsWithCounts);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -308,6 +309,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get specific topic
+  app.get("/api/topics/:topicId", async (req, res) => {
+    try {
+      const { topicId } = req.params;
+      const topic = await storage.getTopicById(topicId);
+
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+
+      res.json(topic);
+    } catch (error) {
+      console.error("Get topic error:", error);
+      res.status(500).json({ message: "Failed to get topic" });
+    }
+  });
+
+  // Get enhanced problem details using leetcode-query
+  app.get("/api/problems/:problemId/enhanced", async (req, res) => {
+    try {
+      const { problemId } = req.params;
+      const problem = await storage.getProblemById(problemId);
+
+      if (!problem) {
+        return res.status(404).json({ message: "Problem not found" });
+      }
+
+      // Fetch enhanced details using leetcode-query
+      try {
+        const leetcode = new LeetCode();
+        const problemDetails = await leetcode.problem(problem.titleSlug);
+
+        // Merge our stored data with enhanced details
+        const enhancedProblem = {
+          ...problem,
+          description: problemDetails?.content || problem.description,
+          hints: problemDetails?.hints || [],
+          similarQuestions: problemDetails?.similarQuestions || [],
+          companies: problemDetails?.companies || [],
+          topicTags: problemDetails?.topicTags || problem.tags,
+        };
+
+        res.json(enhancedProblem);
+      } catch (leetcodeError) {
+        console.warn("Failed to fetch enhanced details:", leetcodeError);
+        // Fallback to stored problem data
+        res.json(problem);
+      }
+    } catch (error) {
+      console.error("Get enhanced problem error:", error);
+      res.status(500).json({ message: "Failed to get problem details" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -316,14 +371,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 function categorizeSubmission(submission: any, topics: any[]) {
   const title = submission.title?.toLowerCase() || "";
   const tags = submission.tags || [];
-  
+
   console.log("🏷️  Categorizing submission:", { title, tags });
-  
+
   // Try to match by LeetCode tags first (most accurate)
   for (const tag of tags) {
     const tagLower = tag.toLowerCase();
     console.log("🔍 Checking tag:", tagLower);
-    
+
     // Direct topic name matching
     if (tagLower.includes('array')) {
       const arraysTopic = topics.find(t => t.name === "Arrays");
@@ -332,7 +387,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return arraysTopic;
       }
     }
-    
+
     if (tagLower.includes('string')) {
       const stringsTopic = topics.find(t => t.name === "Strings");
       if (stringsTopic) {
@@ -340,7 +395,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return stringsTopic;
       }
     }
-    
+
     if (tagLower.includes('hash') || tagLower.includes('map')) {
       const hashTopic = topics.find(t => t.name === "Hash Tables");
       if (hashTopic) {
@@ -348,7 +403,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return hashTopic;
       }
     }
-    
+
     if (tagLower.includes('tree')) {
       const treeTopic = topics.find(t => t.name === "Trees");
       if (treeTopic) {
@@ -356,7 +411,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return treeTopic;
       }
     }
-    
+
     if (tagLower.includes('dynamic') || tagLower.includes('dp')) {
       const dpTopic = topics.find(t => t.name === "Dynamic Programming");
       if (dpTopic) {
@@ -364,7 +419,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return dpTopic;
       }
     }
-    
+
     if (tagLower.includes('pointer')) {
       const stringsTopic = topics.find(t => t.name === "Strings");
       if (stringsTopic) {
@@ -372,7 +427,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
         return stringsTopic;
       }
     }
-    
+
     if (tagLower.includes('window')) {
       const arraysTopic = topics.find(t => t.name === "Arrays");
       if (arraysTopic) {
@@ -381,7 +436,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
       }
     }
   }
-  
+
   // Try to match by title keywords
   console.log("🔍 Checking title keywords for:", title);
   if (title.includes('array') || title.includes('sum')) {
@@ -391,7 +446,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
       return arraysTopic;
     }
   }
-  
+
   if (title.includes('string') || title.includes('palindrome')) {
     const stringsTopic = topics.find(t => t.name === "Strings");
     if (stringsTopic) {
@@ -399,7 +454,7 @@ function categorizeSubmission(submission: any, topics: any[]) {
       return stringsTopic;
     }
   }
-  
+
   // Default to Arrays if no match found
   const defaultTopic = topics.find(t => t.name === "Arrays");
   console.log("⚠️ No specific match found, defaulting to:", defaultTopic?.name || "Arrays");
