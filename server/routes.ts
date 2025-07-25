@@ -296,6 +296,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/problems/:problemId", async (req, res) => {
+    try {
+      const problem = await storage.getProblem(req.params.problemId);
+      if (!problem) {
+        return res.status(404).json({ message: "Problem not found" });
+      }
+      res.json(problem);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

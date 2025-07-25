@@ -8,7 +8,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Code, ExternalLink } from "lucide-react";
+import { BookOpen, Users, Calendar, X, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { TOPIC_COLORS } from "@/lib/constants";
 
 interface TopicModalProps {
@@ -95,7 +96,7 @@ export default function TopicModal({ topicId, isOpen, onClose }: TopicModalProps
                         )}
                       </div>
                     </div>
-                    
+
                     {problem.tags && problem.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {problem.tags.map((tag: string) => (
@@ -105,13 +106,13 @@ export default function TopicModal({ topicId, isOpen, onClose }: TopicModalProps
                         ))}
                       </div>
                     )}
-                    
+
                     {problem.description && (
                       <div className="text-muted-foreground text-sm mb-3 line-clamp-2">
                         {problem.description}
                       </div>
                     )}
-                    
+
                     <div className="flex items-center space-x-4">
                       <Button variant="outline" size="sm" className="flex items-center space-x-2">
                         <ExternalLink className="h-4 w-4" />

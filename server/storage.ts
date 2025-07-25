@@ -7,14 +7,14 @@ export interface IStorage {
   getUserByLeetcodeUsername(leetcodeUsername: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
-  
+
   // Topic operations
   getTopics(userId?: string): Promise<Topic[]>;
   getTopic(id: string): Promise<Topic | undefined>;
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: string, updates: Partial<Topic>): Promise<Topic | undefined>;
   deleteTopic(id: string): Promise<boolean>;
-  
+
   // Problem operations
   getProblems(userId?: string, topicId?: string): Promise<Problem[]>;
   getProblem(id: string): Promise<Problem | undefined>;
@@ -33,7 +33,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.topics = new Map();
     this.problems = new Map();
-    
+
     // Initialize default topics
     this.initializeDefaultTopics();
   }
@@ -94,7 +94,7 @@ export class MemStorage implements IStorage {
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
-    
+
     const updatedUser = { ...user, ...updates };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -119,7 +119,7 @@ export class MemStorage implements IStorage {
       color: insertTopic.color || "blue",
       description: insertTopic.description || null,
       icon: insertTopic.icon || null,
-      isCustom: insertTopic.isCustom || 0,
+      isCustom: 0,
       userId: insertTopic.userId || null
     };
     this.topics.set(id, topic);
@@ -129,7 +129,7 @@ export class MemStorage implements IStorage {
   async updateTopic(id: string, updates: Partial<Topic>): Promise<Topic | undefined> {
     const topic = this.topics.get(id);
     if (!topic) return undefined;
-    
+
     const updatedTopic = { ...topic, ...updates };
     this.topics.set(id, updatedTopic);
     return updatedTopic;
@@ -142,15 +142,15 @@ export class MemStorage implements IStorage {
   // Problem operations
   async getProblems(userId?: string, topicId?: string): Promise<Problem[]> {
     let problems = Array.from(this.problems.values());
-    
+
     if (userId) {
       problems = problems.filter(problem => problem.userId === userId);
     }
-    
+
     if (topicId) {
       problems = problems.filter(problem => problem.topicId === topicId);
     }
-    
+
     return problems;
   }
 
@@ -180,7 +180,7 @@ export class MemStorage implements IStorage {
   async updateProblem(id: string, updates: Partial<Problem>): Promise<Problem | undefined> {
     const problem = this.problems.get(id);
     if (!problem) return undefined;
-    
+
     const updatedProblem = { ...problem, ...updates };
     this.problems.set(id, updatedProblem);
     return updatedProblem;
@@ -194,6 +194,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.problems.values()).filter(
       problem => problem.topicId === topicId
     );
+  }
+
+  async getProblem(problemId: string): Promise<Problem | undefined> {
+    return Array.from(this.problems.values()).find(p => p.id === problemId);
   }
 }
 
