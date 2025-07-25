@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTopicSchema, insertProblemSchema } from "@shared/schema";
+import { insertUserSchema, insertTopicSchema, insertProblemSchema, insertSolutionSchema } from "@shared/schema";
 import { z } from "zod";
 import { LeetCodeGraphQLAPI } from "./leetcode-api";
 

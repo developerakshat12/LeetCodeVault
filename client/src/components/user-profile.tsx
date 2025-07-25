@@ -77,7 +77,7 @@ export default function UserProfile({ onUserUpdate }: UserProfileProps) {
               </div>
             </div>
           </div>
-          
+
           {user && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-muted rounded-lg p-4 text-center">
@@ -108,7 +108,7 @@ export default function UserProfile({ onUserUpdate }: UserProfileProps) {
               </div>
             </div>
           )}
-          
+
           <div className="pt-6 border-t border-border">
             <div className="flex items-center space-x-4">
               <div className="flex-1">

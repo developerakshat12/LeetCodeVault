@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+<old_str>import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -8,98 +8,47 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ProblemCard } from "@/components/problem-card";
-import { ArrowLeft, Plus, Search, Bell, ChevronRight } from "lucide-react";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { TagBadge } from "@/components/tag-badge";
+import { ArrowLeft, Plus, Filter, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Topic, Problem, InsertProblem } from "@shared/schema";
+import type { Problem, Topic } from "@shared/schema";
 
 export default function Questions() {
-  const [match, params] = useRoute("/topics/:topicId");
+  const [match, params] = useRoute("/topics/:topicId/questions");
   const topicId = params?.topicId || null;
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [difficultyFilter, setDifficultyFilter] = useState("All");
-  const [sortBy, setSortBy] = useState("Recently Added");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
   const { toast } = useToast();
 
-  const { data: topic } = useQuery<Topic>({
+  // Fetch topic details
+  const { data: topic } = useQuery({
     queryKey: ["/api/topics", topicId],
+    queryFn: () => apiRequest(`/api/topics/${topicId}`),
     enabled: !!topicId,
   });
 
-  const { data: problems, isLoading } = useQuery<(Problem & { solutionCount: number })[]>({
+  // Fetch problems for this topic
+  const { data: problems = [], isLoading } = useQuery({
     queryKey: ["/api/problems/topic", topicId],
-    queryFn: async () => {
-      const response = await apiRequest("GET", `/api/problems/topic/${topicId}`);
-      return response.json();
-    },
+    queryFn: () => apiRequest(`/api/problems/topic/${topicId}`),
     enabled: !!topicId,
   });
 
-  const createProblemMutation = useMutation({
-    mutationFn: async (newProblem: InsertProblem) => {
-      const response = await apiRequest("POST", "/api/problems", newProblem);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/problems/topic", topicId] });
-      setIsAddDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Problem created successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create problem",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCreateProblem = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!topicId) return;
-
-    const formData = new FormData(e.currentTarget);
-    const tags = (formData.get("tags") as string).split(",").map(tag => tag.trim()).filter(Boolean);
-    
-    const newProblem: InsertProblem = {
-      topicId: topicId,
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
-      difficulty: formData.get("difficulty") as "Easy" | "Medium" | "Hard",
-      platform: formData.get("platform") as string,
-      tags,
-      status: "todo",
-    };
-    createProblemMutation.mutate(newProblem);
-  };
-
-  if (!match || !topicId) {
-    return <div>Topic not found</div>;
-  }
-
-  const filteredProblems = problems?.filter(problem => {
-    const matchesSearch = problem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (problem.description && problem.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesDifficulty = difficultyFilter === "All" || problem.difficulty === difficultyFilter;
+  const filteredProblems = problems.filter((problem: Problem & { solutionCount: number }) => {
+    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         problem.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "all" || problem.difficulty === difficultyFilter;
     return matchesSearch && matchesDifficulty;
-  }) || [];
-
-  const sortedProblems = [...filteredProblems].sort((a, b) => {
-    switch (sortBy) {
-      case "Difficulty":
-        const difficultyOrder = { "Easy": 1, "Medium": 2, "Hard": 3 };
-        return difficultyOrder[a.difficulty as keyof typeof difficultyOrder] - difficultyOrder[b.difficulty as keyof typeof difficultyOrder];
-      case "Name":
-        return a.title.localeCompare(b.title);
-      default: // Recently Added
-        return new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime();
-    }
   });
+
+  if (!topicId) {
+    return <div>Invalid topic</div>;
+  }
 
   if (isLoading) {
     return (
@@ -114,174 +63,315 @@ export default function Questions() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Bar */}
-      <nav className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-primary">DSA Journal</h1>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Link href="/" className="hover:text-primary">Topics</Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-primary">{topic?.name}</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search problems..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            </div>
-            <Button variant="ghost" size="sm">
-              <Bell className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <Link href="/">
               <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Topics
               </Button>
             </Link>
             <div>
-              <h2 className="text-3xl font-bold mb-2">{topic?.name}</h2>
+              <h1 className="text-3xl font-bold">{topic?.name || "Loading..."}</h1>
               <p className="text-muted-foreground">
-                {problems?.length || 0} problems • Last updated {new Date().toLocaleDateString()}
+                {filteredProblems.length} problem{filteredProblems.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Problem
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Problem</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateProblem} className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input id="title" name="title" required />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" required />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="difficulty">Difficulty</Label>
-                    <Select name="difficulty" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Hard">Hard</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="platform">Platform</Label>
-                    <Select name="platform" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LeetCode">LeetCode</SelectItem>
-                        <SelectItem value="HackerRank">HackerRank</SelectItem>
-                        <SelectItem value="CodeChef">CodeChef</SelectItem>
-                        <SelectItem value="Codeforces">Codeforces</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="tags">Tags (comma-separated)</Label>
-                  <Input id="tags" name="tags" placeholder="Two Pointers, Hash Table, etc." />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createProblemMutation.isPending}>
-                    {createProblemMutation.isPending ? "Creating..." : "Create Problem"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        {/* Filter and Sort */}
+        {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {["All", "Easy", "Medium", "Hard"].map((difficulty) => (
-              <Button
-                key={difficulty}
-                variant={difficultyFilter === difficulty ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDifficultyFilter(difficulty)}
-              >
-                {difficulty}
-              </Button>
-            ))}
-          </div>
-          <div className="flex items-center space-x-2 ml-auto">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Recently Added">Recently Added</SelectItem>
-                <SelectItem value="Difficulty">Difficulty</SelectItem>
-                <SelectItem value="Name">Name</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Problems List */}
-        <div className="space-y-4">
-          {sortedProblems.map((problem) => (
-            <ProblemCard
-              key={problem.id}
-              problem={problem}
-              onOpenEditor={() => window.location.href = `/problems/${problem.id}/editor`}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search problems by title or tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
-          ))}
+          </div>
+          <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+            <SelectTrigger className="w-48">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filter by difficulty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Difficulties</SelectItem>
+              <SelectItem value="Easy">Easy</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="Hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {sortedProblems.length === 0 && !isLoading && (
+        {/* Problems Grid */}
+        {filteredProblems.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg mb-4">
-              {searchQuery || difficultyFilter !== "All" 
-                ? "No problems found matching your filters." 
-                : "No problems in this topic yet."}
-            </p>
-            {!searchQuery && difficultyFilter === "All" && (
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add your first problem
-              </Button>
-            )}
+            <p className="text-muted-foreground text-lg">No problems found</p>
+            {searchTerm || difficultyFilter !== "all" ? (
+              <p className="text-sm text-muted-foreground mt-2">
+                Try adjusting your search or filter criteria
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredProblems.map((problem: Problem & { solutionCount: number }) => (
+              <ProblemCard
+                key={problem.id}
+                problem={problem}
+                onOpenEditor={() => {
+                  window.location.href = `/problems/${problem.id}/editor`;
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
     </div>
   );
-}
+}</old_str>
+<new_str>import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute, Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ProblemCard } from "@/components/problem-card";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { TagBadge } from "@/components/tag-badge";
+import { ArrowLeft, Plus, Filter, Search, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Problem, Topic } from "@shared/schema";
+
+export default function Questions() {
+  const [match, params] = useRoute("/topics/:topicId/questions");
+  const topicId = params?.topicId || null;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
+  const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
+  const { toast } = useToast();
+
+  // Fetch topic details
+  const { data: topic } = useQuery({
+    queryKey: ["/api/topics", topicId],
+    queryFn: () => apiRequest(`/api/topics/${topicId}`),
+    enabled: !!topicId,
+  });
+
+  // Fetch problems for this topic
+  const { data: problems = [], isLoading } = useQuery({
+    queryKey: ["/api/problems/topic", topicId],
+    queryFn: () => apiRequest(`/api/problems/topic/${topicId}`),
+    enabled: !!topicId,
+  });
+
+  const filteredProblems = problems.filter((problem: Problem & { solutionCount: number }) => {
+    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         problem.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "all" || problem.difficulty === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
+  });
+
+  if (!topicId) {
+    return <div>Invalid topic</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading problems...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Topics
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">{topic?.name || "Loading..."}</h1>
+              <p className="text-muted-foreground">
+                {filteredProblems.length} problem{filteredProblems.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search problems by title or tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+            <SelectTrigger className="w-48">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filter by difficulty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Difficulties</SelectItem>
+              <SelectItem value="Easy">Easy</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="Hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Problems Grid */}
+        {filteredProblems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">No problems found</p>
+            {searchTerm || difficultyFilter !== "all" ? (
+              <p className="text-sm text-muted-foreground mt-2">
+                Try adjusting your search or filter criteria
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">
+                Fetch LeetCode data from the home page to see problems here
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredProblems.map((problem: Problem & { solutionCount: number }) => (
+              <Card key={problem.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedProblem(problem)}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-semibold">{problem.title}</h3>
+                        <DifficultyBadge difficulty={problem.difficulty} />
+                        <Badge variant="outline" className="text-xs">
+                          {problem.solutionCount} solution{problem.solutionCount !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {problem.tags.map((tag) => (
+                          <TagBadge key={tag} tag={tag} />
+                        ))}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-4">
+                          <span>Language: {problem.language}</span>
+                          <span>Runtime: {problem.runtime}</span>
+                          <span>Memory: {problem.memory}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm" onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`https://leetcode.com/problems/${problem.titleSlug}/`, '_blank');
+                          }}>
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            LeetCode
+                          </Button>
+                          <Button onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/problems/${problem.id}/editor`;
+                          }}>
+                            Open Editor
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Problem Detail Modal */}
+        <Dialog open={!!selectedProblem} onOpenChange={() => setSelectedProblem(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-3">
+                <span>{selectedProblem?.title}</span>
+                <DifficultyBadge difficulty={selectedProblem?.difficulty || "Medium"} />
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedProblem && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  {selectedProblem.tags.map((tag) => (
+                    <TagBadge key={tag} tag={tag} />
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Language:</span>
+                    <p className="text-muted-foreground">{selectedProblem.language}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Runtime:</span>
+                    <p className="text-muted-foreground">{selectedProblem.runtime}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Memory:</span>
+                    <p className="text-muted-foreground">{selectedProblem.memory}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Submitted:</span>
+                    <p className="text-muted-foreground">
+                      {new Date(selectedProblem.submissionDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Your Solution:</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                    <code>{selectedProblem.code}</code>
+                  </pre>
+                </div>
+                
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={() => {
+                    window.open(`https://leetcode.com/problems/${selectedProblem.titleSlug}/`, '_blank');
+                  }}>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open on LeetCode
+                  </Button>
+                  <Button onClick={() => {
+                    window.location.href = `/problems/${selectedProblem.id}/editor`;
+                  }}>
+                    Open in Editor
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}</new_str>
