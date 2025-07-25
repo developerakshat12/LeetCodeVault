@@ -23,7 +23,7 @@ export function DifficultyBadge({ difficulty }: DifficultyBadgeProps) {
   const getColor = () => {
     switch (difficulty) {
       case "Easy":
-        return "bg-green-500 text-white hover:bg-green-500";
+        return "bg-green-500 text-black hover:bg-green-500";
       case "Medium":
         return "bg-yellow-500 text-black hover:bg-yellow-500";
       case "Hard":
