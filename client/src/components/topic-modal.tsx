@@ -8,7 +8,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, Calendar, X, ArrowRight } from "lucide-react";
+import { BookOpen, Users, Calendar, X, ArrowRight, ExternalLink, Code } from "lucide-react";
 import { Link } from "wouter";
 import { TOPIC_COLORS } from "@/lib/constants";
 

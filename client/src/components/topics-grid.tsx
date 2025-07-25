@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TOPIC_COLORS } from "@/lib/constants";
+import { useLocation } from "wouter";
 
 interface TopicsGridProps {
   searchQuery: string;
@@ -10,6 +11,7 @@ interface TopicsGridProps {
 }
 
 export default function TopicsGrid({ searchQuery, userId, onTopicClick }: TopicsGridProps) {
+  const [, setLocation] = useLocation();
   const { data: topics = [], isLoading } = useQuery<any[]>({
     queryKey: userId ? ["/api/topics", userId] : ["/api/topics"],
   });
@@ -65,7 +67,7 @@ export default function TopicsGrid({ searchQuery, userId, onTopicClick }: Topics
             <Card
               key={topic.id}
               className={`${colorClass} cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg`}
-              onClick={() => onTopicClick(topic.id)}
+              onClick={() => setLocation(`/topics/${topic.id}/questions`)}
             >
               <CardContent className="p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
