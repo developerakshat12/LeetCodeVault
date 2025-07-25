@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertTopicSchema, insertProblemSchema } from "@shared/schema";
 import { z } from "zod";
+import { LeetCode } from "leetcode-query";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -66,44 +67,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username is required" });
       }
 
-      // Fetch user profile from alfa-leetcode-api
-      console.log("🔍 Fetching user profile from alfa-leetcode-api...");
-      const profileResponse = await fetch(`https://alfa-leetcode-api.onrender.com/userProfile/${username}`);
+      // Initialize LeetCode query client
+      console.log("🔍 Initializing LeetCode query client...");
+      const leetcode = new LeetCode();
       
-      if (!profileResponse.ok) {
-        console.log("❌ Profile fetch failed:", profileResponse.status, profileResponse.statusText);
+      // Fetch user profile
+      console.log("🔍 Fetching user profile...");
+      const profileData = await leetcode.user(username);
+      
+      if (!profileData || !profileData.matchedUser) {
+        console.log("❌ User not found");
         return res.status(404).json({ message: "LeetCode user not found" });
       }
       
-      const profileData = await profileResponse.json();
-      console.log("✅ Profile data fetched:", JSON.stringify(profileData, null, 2));
+      console.log("✅ Profile data fetched:", JSON.stringify({
+        username: profileData.matchedUser.username,
+        totalSolved: profileData.matchedUser.submitStats?.totalSubmissionNum || 0,
+        acSubmissionNum: profileData.matchedUser.submitStats?.acSubmissionNum || 0
+      }, null, 2));
 
-      // Fetch accepted submissions
-      console.log("🔍 Fetching accepted submissions...");
-      const submissionsResponse = await fetch(`https://alfa-leetcode-api.onrender.com/acSubmission/${username}?limit=100`);
+      // Fetch recent accepted submissions
+      console.log("🔍 Fetching recent accepted submissions...");
+      const submissions = await leetcode.recent_submissions(username, 50);
+      console.log("✅ Submissions data fetched. Total submissions:", submissions?.length || 0);
       
-      if (!submissionsResponse.ok) {
-        console.log("❌ Submissions fetch failed:", submissionsResponse.status, submissionsResponse.statusText);
-        return res.status(404).json({ message: "Failed to fetch submissions" });
+      if (submissions && submissions.length > 0) {
+        console.log("📊 First few submissions:", JSON.stringify(submissions.slice(0, 3).map(s => ({
+          title: s.title,
+          titleSlug: s.titleSlug,
+          statusDisplay: s.statusDisplay,
+          lang: s.lang,
+          timestamp: s.timestamp
+        })), null, 2));
       }
-      
-      const submissionsData = await submissionsResponse.json();
-      console.log("✅ Submissions data fetched. Total submissions:", submissionsData.submission?.length || 0);
-      
-      const submissions = submissionsData.submission || [];
-      console.log("📊 First few submissions:", JSON.stringify(submissions.slice(0, 3), null, 2));
 
       // Find or create user
       console.log("👤 Finding or creating user...");
       let user = await storage.getUserByLeetcodeUsername(username);
       
+      const submitStats = profileData.matchedUser.submitStats;
       const userStats = {
         username: username,
         leetcodeUsername: username,
-        totalSolved: profileData.totalSolved || 0,
-        easySolved: profileData.easySolved || 0,
-        mediumSolved: profileData.mediumSolved || 0,
-        hardSolved: profileData.hardSolved || 0,
+        totalSolved: submitStats?.acSubmissionNum || 0,
+        easySolved: submitStats?.acSubmissionNum?.[0]?.count || 0,
+        mediumSolved: submitStats?.acSubmissionNum?.[1]?.count || 0,
+        hardSolved: submitStats?.acSubmissionNum?.[2]?.count || 0,
         lastFetchedAt: new Date().toISOString(),
       };
       
@@ -129,12 +138,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let processedCount = 0;
       let skippedCount = 0;
       
+      if (!submissions || submissions.length === 0) {
+        console.log("⚠️ No submissions found for user");
+        return res.json({ 
+          user, 
+          message: "User found but no submissions available",
+          totalSubmissions: 0,
+          problemsProcessed: 0,
+          problemsSkipped: 0
+        });
+      }
+      
       for (let i = 0; i < submissions.length; i++) {
         const submission = submissions[i];
+        
+        // Only process accepted submissions
+        if (submission.statusDisplay !== "Accepted") {
+          continue;
+        }
+        
         console.log(`\n🔍 Processing submission ${i + 1}/${submissions.length}:`, {
           title: submission.title,
           titleSlug: submission.titleSlug,
-          difficulty: submission.difficulty,
+          statusDisplay: submission.statusDisplay,
           lang: submission.lang,
           timestamp: submission.timestamp
         });
@@ -148,20 +174,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Fetch additional problem details if needed
+        // Fetch additional problem details
         let problemDetails = null;
         try {
           console.log("🔍 Fetching problem details for:", submission.titleSlug);
-          const detailsResponse = await fetch(`https://alfa-leetcode-api.onrender.com/select?titleSlug=${submission.titleSlug}`);
-          if (detailsResponse.ok) {
-            problemDetails = await detailsResponse.json();
-            console.log("✅ Problem details fetched:", {
-              topicTags: problemDetails.topicTags?.map(tag => tag.name) || [],
-              difficulty: problemDetails.difficulty
-            });
-          } else {
-            console.log("⚠️ Failed to fetch problem details, using submission data only");
-          }
+          problemDetails = await leetcode.problem(submission.titleSlug);
+          console.log("✅ Problem details fetched:", {
+            difficulty: problemDetails?.difficulty,
+            topicTags: problemDetails?.topicTags?.map(tag => tag.name) || []
+          });
         } catch (detailError) {
           console.log("⚠️ Error fetching problem details:", detailError.message);
         }
@@ -170,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const problemData = {
           title: submission.title,
           titleSlug: submission.titleSlug,
-          difficulty: submission.difficulty || problemDetails?.difficulty || "Unknown",
+          difficulty: problemDetails?.difficulty || "Unknown",
           language: submission.lang,
           topicTags: problemDetails?.topicTags?.map(tag => tag.name) || [],
         };
@@ -184,16 +205,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           try {
             const newProblem = await storage.createProblem({
-              leetcodeId: parseInt(submission.id) || Math.floor(Math.random() * 100000),
+              leetcodeId: Math.floor(Math.random() * 100000), // Generate random ID since we don't have problem ID
               title: submission.title,
               titleSlug: submission.titleSlug,
               difficulty: problemData.difficulty,
               tags: problemData.topicTags,
-              submissionDate: submission.timestamp ? new Date(submission.timestamp * 1000).toISOString() : new Date().toISOString(),
+              submissionDate: submission.timestamp ? new Date(parseInt(submission.timestamp) * 1000).toISOString() : new Date().toISOString(),
               language: submission.lang,
-              code: submission.code || `// ${submission.lang} solution for ${submission.title}`,
-              runtime: submission.runtime || "N/A",
-              memory: submission.memory || "N/A",
+              code: `// ${submission.lang} solution for ${submission.title}\n// Submitted at: ${new Date(parseInt(submission.timestamp) * 1000).toLocaleString()}`,
+              runtime: "N/A",
+              memory: "N/A",
               userId: user.id,
               topicId: topic.id,
             });
