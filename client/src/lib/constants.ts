@@ -10,9 +10,9 @@ export const TOPIC_COLORS: Record<string, string> = {
 };
 
 export const DIFFICULTY_COLORS = {
-  Easy: "bg-green-500 text-white",
-  Medium: "bg-yellow-500 text-black", 
-  Hard: "bg-red-500 text-white",
+  Easy: "bg-green-900 text-green-300",
+  Medium: "bg-yellow-900 text-yellow-300", 
+  Hard: "bg-red-900 text-red-300",
 };
 
 export const DEFAULT_TOPICS = [

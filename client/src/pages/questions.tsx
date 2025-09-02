@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProblemCard } from "@/components/problem-card";
-import { ArrowLeft, Plus, Search, Bell, ChevronRight } from "lucide-react";
+import ResponsiveNavbar from "@/components/responsive-navbar";
+import { ArrowLeft, Plus, Search, Bell, ChevronRight, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Topic, Problem, InsertProblem } from "@shared/schema";
@@ -33,6 +34,30 @@ export default function Questions() {
   const { data: problems, isLoading } = useQuery<Problem[]>({
     queryKey: ["/api/problems/topic", topicId],
     enabled: !!topicId,
+  });
+
+  // Fetch solution counts for all problems
+  const { data: solutionCounts } = useQuery<Record<string, number>>({
+    queryKey: ["/api/problems/solution-counts", topicId],
+    queryFn: async () => {
+      if (!problems || problems.length === 0) return {};
+      
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        problems.map(async (problem) => {
+          try {
+            const response = await apiRequest("GET", `/api/problems/${problem.id}/solutions`);
+            const solutions = await response.json();
+            counts[problem.id] = solutions.length || 0;
+          } catch (error) {
+            console.error(`Error fetching solutions for problem ${problem.id}:`, error);
+            counts[problem.id] = 0;
+          }
+        })
+      );
+      return counts;
+    },
+    enabled: !!problems && problems.length > 0,
   });
 
   console.log("Problems data:", problems);
@@ -72,15 +97,13 @@ export default function Questions() {
       titleSlug: (formData.get("title") as string).toLowerCase().replace(/\s+/g, "-"),
       difficulty: formData.get("difficulty") as "Easy" | "Medium" | "Hard",
       tags,
-      submissionDate: new Date().toISOString(),
+      submissionDate: new Date(),
       language: "cpp",
       code: `// ${formData.get("difficulty")} solution for ${formData.get("title")}
 function solution() {
     // Your solution here
     return "Solution";
 }`,
-      runtime: "N/A",
-      memory: "N/A",
       userId: "current-user", // You'll need to get this from your auth system
       topicId: topicId,
     };
@@ -122,56 +145,49 @@ function solution() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Bar */}
-      <nav className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-primary">DSA Journal</h1>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Link href="/" className="hover:text-primary">Topics</Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-primary">{topic?.name}</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search problems..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            </div>
-            <Button variant="ghost" size="sm">
-              <Bell className="w-4 h-4" />
-            </Button>
+      {/* Responsive Navigation */}
+      <ResponsiveNavbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        showSearch={true}
+        title={topic?.name || "Problems"}
+        subtitle={`${problems?.length || 0} problems`}
+      />
+
+      {/* Breadcrumb Navigation */}
+      <div className="border-b border-border bg-card/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
+          <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground">
+            <Link href="/" className="hover:text-primary">Topics</Link>
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-primary">{topic?.name}</span>
           </div>
         </div>
-      </nav>
+      </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+          <div className="flex items-start space-x-2 sm:space-x-4">
             <Link href="/">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="mt-1">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
             <div>
-              <h2 className="text-3xl font-bold mb-2">{topic?.name}</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{topic?.name}</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 {problems?.length || 0} problems • Last updated {new Date().toLocaleDateString()}
               </p>
             </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Problem
+                <span className="hidden sm:inline">Add Problem</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -216,7 +232,7 @@ function solution() {
         </div>
 
         {/* Filter and Sort */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex flex-wrap gap-2">
             {["All", "Easy", "Medium", "Hard"].map((difficulty) => (
               <Button
@@ -224,15 +240,17 @@ function solution() {
                 variant={difficultyFilter === difficulty ? "default" : "outline"}
                 size="sm"
                 onClick={() => setDifficultyFilter(difficulty)}
+                className="text-xs sm:text-sm"
               >
                 {difficulty}
               </Button>
             ))}
           </div>
-          <div className="flex items-center space-x-2 ml-auto">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
+          <div className="flex items-center space-x-2 sm:ml-auto">
+            <Filter className="w-4 h-4 text-muted-foreground sm:hidden" />
+            <span className="text-xs sm:text-sm text-muted-foreground">Sort by:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -245,25 +263,31 @@ function solution() {
         </div>
 
         {/* Problems List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {sortedProblems.map((problem) => (
             <ProblemCard
               key={problem.id}
-              problem={problem}
+              problem={{
+                ...problem,
+                solutionCount: solutionCounts?.[problem.id] || 0
+              }}
               onOpenEditor={() => window.location.href = `/problems/${problem.id}/editor`}
             />
           ))}
         </div>
 
         {sortedProblems.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg mb-4">
+          <div className="text-center py-8 sm:py-12">
+            <p className="text-muted-foreground text-base sm:text-lg mb-4 px-4">
               {searchQuery || difficultyFilter !== "All" 
                 ? "No problems found matching your filters." 
                 : "No problems in this topic yet."}
             </p>
             {!searchQuery && difficultyFilter === "All" && (
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)}
+                className="w-full sm:w-auto"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add your first problem
               </Button>

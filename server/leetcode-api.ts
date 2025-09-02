@@ -10,6 +10,7 @@ export interface LeetCodeSubmission {
   code?: string;
   difficulty?: string;
   topicTags?: string[];
+  leetcodeId?: number | null;
 }
 
 export interface LeetCodeUser {
@@ -18,6 +19,54 @@ export interface LeetCodeUser {
   easySolved: number;
   mediumSolved: number;
   hardSolved: number;
+}
+
+// Type definitions for LeetCode API responses
+interface LeetCodeSubmissionStat {
+  difficulty: string;
+  count: number;
+  submissions: number;
+}
+
+interface LeetCodeUserProfileResponse {
+  data?: {
+    matchedUser?: {
+      username: string;
+      submitStats?: {
+        acSubmissionNum?: LeetCodeSubmissionStat[];
+      };
+    };
+  };
+}
+
+interface LeetCodeRecentSubmissionsResponse {
+  data?: {
+    recentAcSubmissionList?: Array<{
+      id: string;
+      title: string;
+      titleSlug: string;
+      timestamp: string;
+      statusDisplay: string;
+      lang: string;
+    }>;
+  };
+}
+
+interface LeetCodeProblemDetailsResponse {
+  data?: {
+    question?: {
+      questionId: string;
+      questionFrontendId: string;
+      title: string;
+      titleSlug: string;
+      difficulty: string;
+      topicTags?: Array<{
+        name: string;
+        slug: string;
+      }>;
+      content: string;
+    };
+  };
 }
 
 export class LeetCodeGraphQLAPI {
@@ -62,7 +111,7 @@ export class LeetCodeGraphQLAPI {
     `;
 
     try {
-      const result = await this.makeGraphQLRequest(query, { username });
+      const result: LeetCodeUserProfileResponse = await this.makeGraphQLRequest(query, { username });
       console.log(`📊 User profile result:`, JSON.stringify(result, null, 2));
 
       if (!result.data?.matchedUser) {
@@ -70,14 +119,14 @@ export class LeetCodeGraphQLAPI {
       }
 
       const user = result.data.matchedUser;
-      const stats = user.submitStats?.acSubmissionNum || [];
+      const stats: LeetCodeSubmissionStat[] = user.submitStats?.acSubmissionNum || [];
       
       return {
         username: user.username,
-        totalSolved: stats.find(s => s.difficulty === 'All')?.count || 0,
-        easySolved: stats.find(s => s.difficulty === 'Easy')?.count || 0,
-        mediumSolved: stats.find(s => s.difficulty === 'Medium')?.count || 0,
-        hardSolved: stats.find(s => s.difficulty === 'Hard')?.count || 0,
+        totalSolved: stats.find((s: LeetCodeSubmissionStat) => s.difficulty === 'All')?.count || 0,
+        easySolved: stats.find((s: LeetCodeSubmissionStat) => s.difficulty === 'Easy')?.count || 0,
+        mediumSolved: stats.find((s: LeetCodeSubmissionStat) => s.difficulty === 'Medium')?.count || 0,
+        hardSolved: stats.find((s: LeetCodeSubmissionStat) => s.difficulty === 'Hard')?.count || 0,
       };
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -100,7 +149,7 @@ export class LeetCodeGraphQLAPI {
     `;
 
     try {
-      const result = await this.makeGraphQLRequest(query, { username, limit });
+      const result: LeetCodeRecentSubmissionsResponse = await this.makeGraphQLRequest(query, { username, limit });
       console.log(`📝 Recent submissions result:`, JSON.stringify(result, null, 2));
 
       if (!result.data?.recentAcSubmissionList) {
@@ -111,7 +160,7 @@ export class LeetCodeGraphQLAPI {
       
       // For each submission, fetch problem details and try to get more info
       const enrichedSubmissions = await Promise.all(
-        submissions.map(async (submission: any) => {
+        submissions.map(async (submission) => {
           const problemDetails = await this.getProblemDetails(submission.titleSlug);
           
           return {
@@ -123,6 +172,7 @@ export class LeetCodeGraphQLAPI {
             lang: submission.lang,
             difficulty: problemDetails?.difficulty || 'Medium',
             topicTags: problemDetails?.topicTags || [],
+            leetcodeId: problemDetails?.questionFrontendId ? parseInt(problemDetails.questionFrontendId) : null,
             code: `// ${submission.lang} solution for ${submission.title}
 // This would contain the actual submitted code
 // Note: LeetCode's public GraphQL API doesn't expose submission code
@@ -147,6 +197,8 @@ function solution() {
     const query = `
       query getProblemDetails($titleSlug: String!) {
         question(titleSlug: $titleSlug) {
+          questionId
+          questionFrontendId
           title
           titleSlug
           difficulty
@@ -160,7 +212,7 @@ function solution() {
     `;
 
     try {
-      const result = await this.makeGraphQLRequest(query, { titleSlug });
+      const result: LeetCodeProblemDetailsResponse = await this.makeGraphQLRequest(query, { titleSlug });
       
       if (!result.data?.question) {
         return null;
@@ -169,10 +221,12 @@ function solution() {
       const question = result.data.question;
       
       return {
+        questionId: question.questionId, // Internal LeetCode ID
+        questionFrontendId: question.questionFrontendId, // The display number (1, 2, 3, etc.)
         title: question.title,
         titleSlug: question.titleSlug,
         difficulty: question.difficulty,
-        topicTags: question.topicTags?.map((tag: any) => tag.name) || [],
+        topicTags: question.topicTags?.map((tag) => tag.name) || [],
         content: question.content
       };
     } catch (error) {

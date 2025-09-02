@@ -8,8 +8,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, Calendar, X, ArrowRight, ExternalLink, Code } from "lucide-react";
-import { Link } from "wouter";
+import { Calendar, Code } from "lucide-react";
 import { TOPIC_COLORS } from "@/lib/constants";
 
 interface TopicModalProps {
@@ -36,13 +35,13 @@ export default function TopicModal({ topicId, isOpen, onClose }: TopicModalProps
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
       case "easy":
-        return "bg-green-500 text-white";
+        return "bg-green-900 text-green-300";
       case "medium":
-        return "bg-yellow-500 text-black";
+        return "bg-yellow-900 text-yellow-300";
       case "hard":
-        return "bg-red-500 text-white";
+        return "bg-red-900 text-red-300";
       default:
-        return "bg-gray-500 text-white";
+        return "bg-gray-500 text-black";
     }
   };
 
@@ -112,23 +111,6 @@ export default function TopicModal({ topicId, isOpen, onClose }: TopicModalProps
                         {problem.description}
                       </div>
                     )}
-
-                    <div className="flex items-center space-x-4">
-                      <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                        <ExternalLink className="h-4 w-4" />
-                        <span>View on LeetCode</span>
-                      </Button>
-                      {problem.runtime && (
-                        <span className="text-xs text-muted-foreground">
-                          Runtime: {problem.runtime}
-                        </span>
-                      )}
-                      {problem.memory && (
-                        <span className="text-xs text-muted-foreground">
-                          Memory: {problem.memory}
-                        </span>
-                      )}
-                    </div>
                   </CardContent>
                 </Card>
               ))}

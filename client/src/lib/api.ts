@@ -84,8 +84,12 @@ export const internalAPI = {
     return response.json();
   },
 
-  async getProblemsByTopic(topicId: string) {
-    const response = await apiRequest("GET", `/api/problems/topic/${topicId}`);
+  async getProblemsByTopic(topicId: string, userId?: string) {
+    const params = new URLSearchParams();
+    if (userId) params.append("userId", userId);
+    
+    const queryString = params.toString();
+    const response = await apiRequest("GET", `/api/problems/topic/${topicId}${queryString ? `?${queryString}` : ""}`);
     return response.json();
   }
 };

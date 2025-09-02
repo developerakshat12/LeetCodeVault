@@ -10,10 +10,10 @@ interface TopicsGridProps {
   onTopicClick: (topicId: string) => void;
 }
 
-export default function TopicsGrid({ searchQuery, userId, onTopicClick }: TopicsGridProps) {
+export default function TopicsGrid({ searchQuery, userId }: TopicsGridProps) {
   const [, setLocation] = useLocation();
   const { data: topics = [], isLoading } = useQuery<any[]>({
-    queryKey: userId ? ["/api/topics", userId] : ["/api/topics"],
+    queryKey: userId ? [`/api/topics?userId=${userId}`] : ["/api/topics"],
   });
 
   const filteredTopics = topics.filter((topic: any) =>

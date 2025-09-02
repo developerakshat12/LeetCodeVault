@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Problem } from "@shared/schema";
 import { DifficultyBadge } from "./difficulty-badge";
 import { TagBadge } from "./tag-badge";
-import { Clock, Code, Calendar } from "lucide-react";
+import { FavoriteButton } from "./FavoriteButton";
+import { Code, Calendar, FileText } from "lucide-react";
 
 interface ProblemCardProps {
   problem: Problem & { solutionCount?: number };
   onOpenEditor: () => void;
+  userId?: string;
 }
 
-export function ProblemCard({ problem, onOpenEditor }: ProblemCardProps) {
+export function ProblemCard({ problem, onOpenEditor, userId = "user-1" }: ProblemCardProps) {
   const formatDate = (dateInput: string | Date) => {
     const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     const now = new Date();
@@ -49,20 +51,27 @@ export function ProblemCard({ problem, onOpenEditor }: ProblemCardProps) {
                 <Calendar className="w-4 h-4 mr-1" />
                 Solved {formatDate(problem.submissionDate || new Date())}
               </span>
-              {problem.runtime && (
+              {problem.solutionCount !== undefined && (
                 <span className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {problem.runtime}
+                  <FileText className="w-4 h-4 mr-1" />
+                  {problem.solutionCount} Solution{problem.solutionCount !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
           </div>
-          <Button 
-            onClick={onOpenEditor}
-            className="ml-4 bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            View Solution
-          </Button>
+          <div className="flex items-center space-x-2 ml-4">
+            <FavoriteButton 
+              problemId={problem.id}
+              userId={userId}
+              variant="ghost"
+            />
+            <Button 
+              onClick={onOpenEditor}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              View Solution
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
