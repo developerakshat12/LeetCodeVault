@@ -97,7 +97,6 @@ npm run dev
 ## 📚 Resources
 - [LeetHub Extension](https://github.com/QasimWani/LeetHub)
 - [MongoDB Atlas](https://www.mongodb.com/atlas)
-- [LeetCodeVault Issues](https://github.com/your-username/LeetCodeVault/issues)
 
 ---
 
