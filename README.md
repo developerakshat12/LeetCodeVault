@@ -107,9 +107,5 @@ npm run dev
 
 ---
 
-## 🙌 Contributing
-Pull requests and issues are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
----
 
 ## © 2025 LeetCodeVault
