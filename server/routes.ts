@@ -257,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   approach: "GitHub Import",
                   timeComplexity: "O(?)",
                   spaceComplexity: "O(?)",
-                  explanation: "", // Leave empty as requested
+                  explanation: "",
                   isFromGitHub: true,
                   githubFileName: githubSolution.fileName,
                   githubFolderName: githubSolution.folderName,
